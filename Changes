@@ -1,5 +1,37 @@
-Revision history for Perl extension App::Config.
+App::Config Perl5 module for global configuration variable management.
 
-0.01  Tue Aug  5 14:24:37 1997
-	- original version; created by h2xs 1.18
+------------------------------------------------------------------------
+Version 1.00    Date: 1997/08/12 11:07:45
 
+* App::Config developed, tested and brought under RCS
+
+------------------------------------------------------------------------
+Version 1.02    Date: 1997/08/13 09:58:26
+
+* Added variable expansion, executed in cfg_file().
+
+------------------------------------------------------------------------
+Version 1.03    Date: 1997/09/10 15:08:24
+
+* Added CMDENV and ENDOFARGS options.  Updated documentation.
+
+* Added README file (pod2text Config.pm > README) to MANIFEST
+
+* First public release.
+
+------------------------------------------------------------------------
+Version 1.04    Date: 1998/02/05 12:18:34
+
+* Changed carp() to warn().
+
+* Added REVISION section to documentation.
+
+------------------------------------------------------------------------
+Version 1.05    Date: 1998/02/18 17:34:49
+
+* Changed wording of Copyright to mention the Perl Artistic Licence rather
+  than "the same terms as Perl itself".
+
+* Moved ENDOFARGS default from _configure() (which may not get called)
+  into new() (which always does).  Prevents an "Undefined variable..." 
+  warning.

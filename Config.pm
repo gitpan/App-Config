@@ -12,7 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: Config.pm,v 1.3 1997/09/10 15:08:24 abw Exp abw $
+# $Id: Config.pm,v 1.5 1998/02/18 17:34:49 abw Exp abw $
 #
 #============================================================================
 
@@ -23,10 +23,9 @@ require AutoLoader;
 
 use strict;
 use vars qw( $RCS_ID $VERSION @ISA $AUTOLOAD );
-use Carp;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.3 $ =~ /(\d+)\.(\d+)/);
-$RCS_ID  = q$Id: Config.pm,v 1.3 1997/09/10 15:08:24 abw Exp abw $;
+$VERSION = sprintf("%d.%02d", q$Revision: 1.5 $ =~ /(\d+)\.(\d+)/);
+$RCS_ID  = q$Id: Config.pm,v 1.5 1998/02/18 17:34:49 abw Exp abw $;
 @ISA     = qw(AutoLoader);
 
 
@@ -63,6 +62,8 @@ sub new {
     $self->{ EXPAND    } = { };  # expand vars, env vars, ~uid home dirs
     $self->{ VALIDATE  } = { };  # validation regex/array/function
     $self->{ ACTION    } = { };  # action function when variable is set
+    $self->{ ENDOFARGS } = '--'; # marks end of command line arguments 
+    $self->{ CASE      } = 0;    # case sensitivity flag (1 = sensitive)
     
     # configure module 
     $self->_configure($cfg) if defined($cfg);
@@ -563,15 +564,15 @@ sub _configure {
     my $self = shift;
     my $cfg  = shift;
 
-    # set configuration defaults
+    # set configuration defaults (setting them to undef is totally redundant
+    # except that the element will exist() and it keeps them all in one place
+    # for the time when I want to define something else..
     $self->{ FILEPARSE } = undef;  # user-defined fn to parse config file
     $self->{ LINEPARSE } = undef;  # "" for each config line
     $self->{ CMDPARSE  } = undef;  # "" for command line (@ARGV)
     $self->{ ARGPARSE  } = undef;  # "" for each arg in @ARGV
     $self->{ CMDENV    } = undef;  # env var for default cmd line opts
     $self->{ ERROR     } = undef;  # error handler function
-    $self->{ CASE      } = 0;      # case sensitivity flag (1 = sensitive)
-    $self->{ ENDOFARGS } = '--';   # end of cmd line arguments marker 
 
     # return now if there's nothing to do
     return unless $cfg;
@@ -717,7 +718,7 @@ sub _error {
 	&{ $self->{ ERROR } }($format, @_);
     }
     else {
-	carp(sprintf($format, @_));
+	warn(sprintf($format, @_));
     }
 }
 
@@ -1379,12 +1380,16 @@ SAS Group, Canon Research Centre Europe Ltd.
 App::Config is based in part on the ConfigReader module, v0.5, by Andrew 
 Wilcox (currently untraceable).
 
+=head1 REVISION
+
+$Revision: 1.5 $
+
 =head1 COPYRIGHT
 
-Copyright (c) 1997 Canon Research Centre Europe Ltd.  All Rights Reserved.
+Copyright (C) 1997,98 Canon Research Centre Europe Ltd.  All Rights Reserved.
 
-This module is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself.
+This module is free software; you can redistribute it and/or modify it under 
+the term of the Perl Artistic License.
 
 =head1 SEE ALSO
 

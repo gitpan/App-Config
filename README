@@ -562,12 +562,15 @@ AUTHOR
     App::Config is based in part on the ConfigReader module, v0.5,
     by Andrew Wilcox (currently untraceable).
 
+REVISION
+    $Revision: 1.5 $
+
 COPYRIGHT
-    Copyright (c) 1997 Canon Research Centre Europe Ltd. All Rights
-    Reserved.
+    Copyright (C) 1997,98 Canon Research Centre Europe Ltd. All
+    Rights Reserved.
 
     This module is free software; you can redistribute it and/or
-    modify it under the same terms as Perl itself.
+    modify it under the term of the Perl Artistic License.
 
 SEE ALSO
     Andy Wardley's Home Page
