@@ -12,7 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: Config.pm,v 1.5 1998/02/18 17:34:49 abw Exp abw $
+# $Id: Config.pm,v 1.6 1998/03/20 10:33:25 abw Exp abw $
 #
 #============================================================================
 
@@ -24,8 +24,8 @@ require AutoLoader;
 use strict;
 use vars qw( $RCS_ID $VERSION @ISA $AUTOLOAD );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.5 $ =~ /(\d+)\.(\d+)/);
-$RCS_ID  = q$Id: Config.pm,v 1.5 1998/02/18 17:34:49 abw Exp abw $;
+$VERSION = sprintf("%d.%02d", q$Revision: 1.6 $ =~ /(\d+)\.(\d+)/);
+$RCS_ID  = q$Id: Config.pm,v 1.6 1998/03/20 10:33:25 abw Exp abw $;
 @ISA     = qw(AutoLoader);
 
 
@@ -843,34 +843,39 @@ To install this module type the following:
     make
     make install
 
-This will copy App::Config.pm to your perl library directory for use by all
-perl scripts.  You will probably need root access to do this.  You can now 
-load the App::Config module into your Perl scripts with the line:
-
-    use App::Config;
-
-If you don't have sufficient privileges to install App::Config.pm in 
-the Perl library directory, you can prefix all Perl scripts that call it 
-with a line of the form:
-
-    use lib '/user/abw/lib/perl5';  # wherever you put App::Config.pm
-    use App::Config;
+The 'make install' will install the module on your system.  You may need
+root access to perform this task.  If you install the module in a local
+directory (for example, by executing "perl Makefile.PL LIB=~/lib" in the
+above - see C<perldoc MakeMaker> for full details), you will need to ensure
+that the PERL5LIB environment variable is set to include the location, or
+add a line to your scripts explicitly naming the library location:
+ 
+    use lib '/local/path/to/lib';
 
 =head1 DESCRIPTION
 
-=head2 CREATING A NEW APP::CONFIG OBJECT
+=head2 USING THE App::Config MODULE
 
-    $cfg = new App::Config;
+To import and use the App::COnfig module the following line should appear
+in your Perl script:
+ 
+     use App::Config;
+      
+App::Config is implemented using object-oriented methods.  A new App::Config
+object is created and initialised using the App::Config->new() method.
+This returns a reference to a new App::Config object.
+       
+    my $cfg = App::Config->new();
 
 This will create a reference to a new App::Config with all configuration
 options set to their default values.  You can initialise the object by 
 passing a hash array reference containing configuration options:
 
-    $cfg = new App::Config {
+    $cfg = App::Config->new( {
 	CASE      => 1,
 	FILEPARSE => \&my_parser,
 	ERROR     => \&my_error,
-    };
+    } );
 
 The following configuration options may be specified
 
@@ -900,7 +905,7 @@ returned directly from C<cfg_file()>;
 
 Pseudo-Code Example:
 
-    $cfg = new App::Config { FILEPARSE => \&my_parser };
+    $cfg = App::Config->new( { FILEPARSE => \&my_parser } );
 
     sub my_parser {
 	my $cfg  = shift;
@@ -957,7 +962,7 @@ where required.
 
 A pseudo-code example is shown:
 
-    my $cfg = new App::Config { ARGPARSE => \&my_arg_parse, };	    
+    my $cfg = App::Config->new( { ARGPARSE => \&my_arg_parse, } );
 
     sub my_arg_parse {
 	my $cfg     = shift;
@@ -1006,7 +1011,7 @@ From the Unix shell:
 
 Perl App::Config usage:
 
-    my $cfg = new App::Config { CMDENV => "SPLATOPTS" };
+    my $cfg = App::Config->new( { CMDENV => "SPLATOPTS" } );
 
     $cfg->cmd_line(\@ARGV);   # parses ("-z", "-f", "foobar", @ARGV)
 
@@ -1017,7 +1022,7 @@ end of the command line argument list.  Typically, and by default, this is
 '--'.  Any arguments appearing in the command line after this token will be
 ignored.
 
-    my $cfg = new App::Config { ENDOFARGS => "STOP" };
+    my $cfg = App::Config->new( { ENDOFARGS => "STOP" } );
 
     @args = qw(-f -g -h STOP -i -am -ignored);
     $cfg->cmd_line(\@args);
@@ -1356,8 +1361,8 @@ ARGCOUNT should be able to indicate nargs > 1 and have cmd_line extract
 them accordingly.  Perhaps have types, e.g. boolean, single, multiple.
 The validate function could additionally take an array ref which contains 
 code refs or regex's to match each arg.  Should also be able to handle  
-multiple options that can be specified separately, e.g. -I/usr/include 
--I/user/abw/include.  
+multiple options that can be specified separately, e.g. C<-I/usr/include>
+C<-I/user/abw/include>.  
 
 =item *
 
@@ -1382,7 +1387,7 @@ Wilcox (currently untraceable).
 
 =head1 REVISION
 
-$Revision: 1.5 $
+$Revision: 1.6 $
 
 =head1 COPYRIGHT
 
@@ -1399,12 +1404,9 @@ the term of the Perl Artistic License.
 
 http://www.kfs.org/~abw/
 
-=item The SAS Group Home Page
+=item Canon Research Centre Europe 
 
-http://www.cre.canon.co.uk/sas.html
-
-The research group at Canon Research Centre Europe responsible for 
-development of App::Config and similar tools.
+http://www.cre.canon.co.uk/perl/
 
 =item The ConfigReader module.
 

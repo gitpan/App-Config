@@ -35,3 +35,14 @@ Version 1.05    Date: 1998/02/18 17:34:49
 * Moved ENDOFARGS default from _configure() (which may not get called)
   into new() (which always does).  Prevents an "Undefined variable..." 
   warning.
+
+------------------------------------------------------------------------
+Version 1.06    Date: 1998/03/20 10:33:25
+
+* Fixed a problem with Makefile.PL which was preventing the man page for
+  App::Config.pm from being extracted from Config.pm.  MakeMaker ignores
+  any files that look like Configure.pm and Config.pm comes close enough.
+  Fixed by explicitly adding MAN3PODS line to config hash.
+
+* Minor documentation updates.
+

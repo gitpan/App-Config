@@ -1,9 +1,15 @@
 use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
 
 WriteMakefile(
-    'NAME'	      => 'App::Config',
-    'VERSION_FROM'    => 'Config.pm', # finds $VERSION
-    'dist'            => { 'COMPRESS' => 'gzip', 'SUFFIX' => 'gz' },
+    'NAME'	     => 'App::Config',
+    'VERSION_FROM'   => 'Config.pm', # finds $VERSION
+    'MAN3PODS'       => { 
+	# We must explicitly name Config.pm as a manifyable file because 
+	# MakeMaker ignores files that match  /(config|setup).*\.pm/i;
+	'Config.pm'  => '$(INST_MAN3DIR)/$(NAME).$(MAN3EXT)' 
+    },
+    'dist'           => { 
+	'COMPRESS'   => 'gzip', 
+	'SUFFIX'     => 'gz' 
+    },
 );
