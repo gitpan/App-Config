@@ -12,7 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: Config.pm,v 1.6 1998/03/20 10:33:25 abw Exp abw $
+# $Id: Config.pm,v 1.7 1998/07/03 10:11:01 abw Exp abw $
 #
 #============================================================================
 
@@ -24,9 +24,20 @@ require AutoLoader;
 use strict;
 use vars qw( $RCS_ID $VERSION @ISA $AUTOLOAD );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.6 $ =~ /(\d+)\.(\d+)/);
-$RCS_ID  = q$Id: Config.pm,v 1.6 1998/03/20 10:33:25 abw Exp abw $;
+$VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
+$RCS_ID  = q$Id: Config.pm,v 1.7 1998/07/03 10:11:01 abw Exp abw $;
 @ISA     = qw(AutoLoader);
+
+
+
+#========================================================================
+#                      -----  GETPW* CHECK ----
+#========================================================================
+
+eval { my @tmp = getpwnam($<); };
+my $has_getpwnam = ! $@;
+eval { my @tmp = getpwuid($<); };
+my $has_getpwuid = ! $@;
 
 
 
@@ -93,9 +104,27 @@ sub define {
     # _varname returns variable name after aliasing and case conversion
     $variable = $self->_varname($variable);
 
-    # activate $variable (so it does 'exist()') and set defaults
+    # activate $variable (so it does 'exist()') 
     $self->{ VARIABLE }->{ $variable } = undef;
-    $self->{ EXPAND   }->{ $variable } = 1;
+
+    # use defaults from globally set values, if defined
+    $self->{ EXPAND   }->{ $variable } = $self->{ GLOBAL }->{ EXPAND }   || 1;
+    $self->{ ARGCOUNT }->{ $variable } = $self->{ GLOBAL }->{ ARGCOUNT } || 0;
+    $self->{ VALIDATE }->{ $variable } = $self->{ GLOBAL }->{ VALIDATE };
+
+    # set the default CMDARG if undefined and the global flag is set
+    if (!defined $cfg->{ CMDARG } && defined $self->{ GLOBAL }->{ CMDARG }) {
+	# construct an array of variable name and aliases in the form "-$var"
+	my @namelist = ($variable);
+	push(@namelist, 
+		ref($cfg->{ ALIAS }) eq 'ARRAY'
+		    ? @{ $cfg->{ ALIAS } }
+		    :    $cfg->{ ALIAS })
+	    if defined $cfg->{ ALIAS };
+	    
+	$cfg->{ CMDARG } = [ map { "-$_" } @namelist ];
+    }
+
 
     # examine each variable configuration parameter
     foreach (keys %$cfg) {
@@ -243,7 +272,7 @@ sub get {
     }
 
     # return variable value
-    $self->{ VARIABLE }->{ $variable } || undef;
+    $self->{ VARIABLE }->{ $variable };
 }
 
 
@@ -300,8 +329,9 @@ sub set {
 #========================================================================
 
 sub cfg_file {
-    my    $self   = shift;
-    my    $file   = shift;
+    my $self = shift;
+    my $file = shift;
+    my $failures = 0;
     local *CF;
 
 
@@ -353,6 +383,7 @@ sub cfg_file {
 	    # check it's defined
 	    unless (exists($self->{ VARIABLE }->{ $variable })) {
 		$self->_error("$file:$.: no such variable: $variable\n");
+		$failures++;
 		next;
 	    }
 
@@ -380,6 +411,7 @@ sub cfg_file {
 	    if (defined($self->{ VALIDATE }->{ $variable })) {
 		unless ($self->validate($variable, $value)) {
 		    $self->_error("$file:$.: invalid data for '$variable'\n");
+		    $failures++;
 		    next;
 		}
 	    }
@@ -390,13 +422,14 @@ sub cfg_file {
     	}
     	else {
 	    $self->_error("$file:$.: parse error\n");
+	    $failures++;
     	}
     }
 
     close(CF);
 
-    # return ok status
-    return 1;
+    # return status
+    return $failures ? 0 : 1;
 }
 
 
@@ -425,6 +458,7 @@ sub cmd_line {
     my $self = shift;
     my $argv = shift;
     my ($arg, $variable, $value);
+    my $failures = 0;
 
 
     # if a command line environment variable is defined, split this up
@@ -465,6 +499,7 @@ sub cmd_line {
 		}
 		else {
 		    $self->_error("$arg expects an argument\n");
+		    $failures++;
 		    next;
 		}
 	    }
@@ -477,6 +512,7 @@ sub cmd_line {
 	    if (defined($self->{ VALIDATE }->{ $variable })) {
 		unless ($self->validate($variable, $value)) {
 		    $self->_error("$arg $value: invalid data ($variable)\n");
+		    $failures++;
 		    next;
 		}
 	    }
@@ -487,11 +523,12 @@ sub cmd_line {
 	}
 	else {
 	    $self->_error("$arg : invalid flag\n");
+	    $failures++;
 	}
     }
 
-    # return ok status
-    return 1;
+    # return status
+    return $failures ? 0 : 1;
 }
 
 
@@ -573,6 +610,7 @@ sub _configure {
     $self->{ ARGPARSE  } = undef;  # "" for each arg in @ARGV
     $self->{ CMDENV    } = undef;  # env var for default cmd line opts
     $self->{ ERROR     } = undef;  # error handler function
+    $self->{ GLOBAL    } = undef;  # global default values
 
     # return now if there's nothing to do
     return unless $cfg;
@@ -584,6 +622,21 @@ sub _configure {
     };
 
     foreach (keys %$cfg) {
+
+	# GLOBAL had better be a hash ref
+	/^GLOBALS?$/i && do {
+	    unless (ref($cfg->{ $_ }) eq 'HASH') {
+		$self->_error("\U$_\E parameter is not a hash ref\n");
+                next;
+            }
+            # error checking
+            foreach my $opt ( keys %{ $cfg->{ $_} } )  {
+                next if ($opt =~ /(ARGCOUNT|EXPAND|CMDARG|VALIDATE)/);
+                $self->_error( "\U$opt\E parameter cannot be GLOBAL\n");
+            }
+            $self->{ "\U$_" } = $cfg->{ $_ };
+            next;
+        };
 
 	# *PARSE and ERROR should be code refs
 	/^(FILE|LINE|CMD|ARG)PARSE|ERROR$/i && do {
@@ -664,14 +717,15 @@ sub _varname {
 sub _expand {
     my $self  = shift;
     my $value = shift;
-    my $home  = $ENV{ HOME } || (getpwuid($<))[7] || "";
+    my $home  = $ENV{ HOME } ||
+		($has_getpwuid ? (getpwuid($<))[7] : undef) || ""; 
     my $variable;
 
 
     # expand "~" or "~uid" home directory
     $value =~ s{^~([^/]*)} {
 	    defined($1) && length($1)
-	    ? (getpwnam($1))[7] || "~$1"
+	    ? ($has_getpwnam ? (getpwnam($1))[7] : undef) || "~$1"
 	    : $home
 	}ex;
 
@@ -877,7 +931,8 @@ passing a hash array reference containing configuration options:
 	ERROR     => \&my_error,
     } );
 
-The following configuration options may be specified
+The following configuration options may be specified.  Some of these use 
+default values as may be specified in the GLOBAL configuration option.
 
 =over 4
 
@@ -1029,6 +1084,30 @@ ignored.
 
     # @args now contains qw(-i -am -ignored) 
 
+=item GLOBAL 
+
+The GLOBAL option allows default values to be set for the ARGCOUNT, EXPAND,
+CMDARG and VALIDATE options for all variables.  L<DEFINING VARIABLES> below
+describes these options in detail.
+
+The CMDARG global option, when set to any true value, specifies that 
+the command line option for any variable should be of the form "-variable".  
+Any aliases specified for a variable can also be used in this way.  e.g.
+
+    my $cfg = App::Config->new({
+	    GLOBAL => { ARGCOUNT => 1, CMDARG => 1 }
+	});
+
+    $cfg->define("foo", { 
+	    ALIAS  => 'bar' 
+	});
+
+The GLOBAL ARGCOUNT parameter specifies that the foo variable expects an
+argument.  An ARGCOUNT option specified in the C<define()> method call would
+override this default.  The GLOBAL CMDARG option specifies that the 'foo'
+variable should be specified on the command line as '-foo'.  The ALIAS 
+name for foo can also be specified as such: '-bar'.
+
 =back
 
 =head2 DEFINING VARIABLES
@@ -1100,6 +1179,11 @@ can be specified by passing a reference to an array of arguments:
 	    CMDARG => [ '-v', '-V' ],
 	});
 
+If the GLOBAL CMDARG variable is set (L<GLOBAL> above) then the default
+CMDARG for each variable will be its name (and any aliases) prefixed by
+a dash, e.g. '-verbose'.  Any CMADRG value specifically set will override 
+this default.
+
 =item ARGCOUNT
 
 Some variables are intended to be simple flags that have a false/true
@@ -1113,6 +1197,10 @@ the opening variable name has been removed) as the argument value and
 C<cmd_line()> passes the next argument from the command line argument 
 list (usually @ARGV).  When ARGCOUNT is 0, both functions pass the value 
 1 to set the variable to a true state.  The default ARGCOUNT value is 0.
+
+If the GLOBAL ARGCOUNT variable is set (L<GLOBAL> above) then this value
+will be used as the default ARGCOUNT for each variable unless otherwise
+specified.
 
 NOTE: Although any non-zero value can be used to indicate the presence of 
 an additional argument, this option may be extended in the future to handle
@@ -1128,6 +1216,10 @@ in tilde notation (e.g. ~abw).  The EXPAND option specifies if these
 variables should be replaced with their relevant values.  By default
 EXPAND is set to 1 (expansion) but can be set to 0 to disable the
 feature.
+
+If the GLOBAL EXPAND variable is set (L<GLOBAL> above) then this value
+will be used as the default EXPAND for each variable unless otherwise
+specified.
 
 Items are expanded according to the following rules:
 
@@ -1182,6 +1274,10 @@ as its arguments the name of the variable and its intended value.  The
 sub-routine should return 1 or 0 to indicate that the value is valid
 or invalid, respectively.  An invalid value will cause a warning error
 message to be generated.
+
+If the GLOBAL VALIDATE variable is set (L<GLOBAL> above) then this value
+will be used as the default VALIDATE for each variable unless otherwise
+specified.
 
 =item ACTION
 
@@ -1380,14 +1476,23 @@ an env_vars() function.
 
 Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
 
-SAS Group, Canon Research Centre Europe Ltd.
+Web Technology Group, Canon Research Centre Europe Ltd.
 
 App::Config is based in part on the ConfigReader module, v0.5, by Andrew 
 Wilcox (currently untraceable).
 
+Thanks to all the people who have reported bugs and made suggestions.  
+Extra special thanks to those who sent patches:
+
+    Mik Firestone <fireston@lexmark.com>
+        * GLOBAL arguments
+
+    Blair Zajac <blair@gps.caltech.edu>
+        * getpw*() check for Win32 compatibility
+
 =head1 REVISION
 
-$Revision: 1.6 $
+$Revision: 1.7 $
 
 =head1 COPYRIGHT
 

@@ -51,37 +51,39 @@ INSTALLATION
         make
         make install
 
-    This will copy App::Config.pm to your perl library directory for
-    use by all perl scripts. You will probably need root access to
-    do this. You can now load the App::Config module into your Perl
-    scripts with the line:
-
-        use App::Config;
-
-    If you don't have sufficient privileges to install
-    App::Config.pm in the Perl library directory, you can prefix all
-    Perl scripts that call it with a line of the form:
-
-        use lib '/user/abw/lib/perl5';  # wherever you put App::Config.pm
-        use App::Config;
+    The 'make install' will install the module on your system. You
+    may need root access to perform this task. If you install the
+    module in a local directory (for example, by executing "perl
+    Makefile.PL LIB=~/lib" in the above - see `perldoc MakeMaker'
+    for full details), you will need to ensure that the PERL5LIB
+    environment variable is set to include the location, or add a
+    line to your scripts explicitly naming the library location: use
+    lib '/local/path/to/lib';
 
 DESCRIPTION
-  CREATING A NEW APP::CONFIG OBJECT
+  USING THE App::Config MODULE
 
-        $cfg = new App::Config;
+    To import and use the App::COnfig module the following line
+    should appear in your Perl script: use App::Config; App::Config
+    is implemented using object-oriented methods. A new App::Config
+    object is created and initialised using the App::Config->new()
+    method. This returns a reference to a new App::Config object. my
+    $cfg = App::Config->new();
 
     This will create a reference to a new App::Config with all
     configuration options set to their default values. You can
     initialise the object by passing a hash array reference
     containing configuration options:
 
-        $cfg = new App::Config {
+        $cfg = App::Config->new( {
             CASE      => 1,
             FILEPARSE => \&my_parser,
             ERROR     => \&my_error,
-        };
+        } );
 
-    The following configuration options may be specified
+    The following configuration options may be specified. Some of
+    these use default values as may be specified in the GLOBAL
+    configuration option.
 
     CASE
         Determines if the variable names are treated case
@@ -106,7 +108,7 @@ DESCRIPTION
 
         Pseudo-Code Example:
 
-            $cfg = new App::Config { FILEPARSE => \&my_parser };
+            $cfg = App::Config->new( { FILEPARSE => \&my_parser } );
 
             sub my_parser {
                 my $cfg  = shift;
@@ -165,7 +167,7 @@ DESCRIPTION
 
         A pseudo-code example is shown:
 
-            my $cfg = new App::Config { ARGPARSE => \&my_arg_parse, };      
+            my $cfg = App::Config->new( { ARGPARSE => \&my_arg_parse, } );
 
             sub my_arg_parse {
                 my $cfg     = shift;
@@ -215,7 +217,7 @@ DESCRIPTION
 
         Perl App::Config usage:
 
-            my $cfg = new App::Config { CMDENV => "SPLATOPTS" };
+            my $cfg = App::Config->new( { CMDENV => "SPLATOPTS" } );
 
             $cfg->cmd_line(\@ARGV);   # parses ("-z", "-f", "foobar", @ARGV)
 
@@ -226,12 +228,38 @@ DESCRIPTION
         appearing in the command line after this token will be
         ignored.
 
-            my $cfg = new App::Config { ENDOFARGS => "STOP" };
+            my $cfg = App::Config->new( { ENDOFARGS => "STOP" } );
 
             @args = qw(-f -g -h STOP -i -am -ignored);
             $cfg->cmd_line(\@args);
 
             # @args now contains qw(-i -am -ignored) 
+
+    GLOBAL
+        The GLOBAL option allows default values to be set for the
+        ARGCOUNT, EXPAND, CMDARG and VALIDATE options for all
+        variables. the section on "DEFINING VARIABLES" below
+        describes these options in detail.
+
+        The CMDARG global option, when set to any true value,
+        specifies that the command line option for any variable
+        should be of the form "-variable". Any aliases specified for
+        a variable can also be used in this way. e.g.
+
+            my $cfg = App::Config->new({
+                    GLOBAL => { ARGCOUNT => 1, CMDARG => 1 }
+                });
+
+            $cfg->define("foo", { 
+                    ALIAS  => 'bar' 
+                });
+
+        The GLOBAL ARGCOUNT parameter specifies that the foo
+        variable expects an argument. An ARGCOUNT option specified
+        in the `define()' method call would override this default.
+        The GLOBAL CMDARG option specifies that the 'foo' variable
+        should be specified on the command line as '-foo'. The ALIAS
+        name for foo can also be specified as such: '-bar'.
 
   DEFINING VARIABLES
 
@@ -300,6 +328,12 @@ DESCRIPTION
                     CMDARG => [ '-v', '-V' ],
                 });
 
+        If the GLOBAL CMDARG variable is set (the GLOBAL manpage
+        above) then the default CMDARG for each variable will be its
+        name (and any aliases) prefixed by a dash, e.g. '-verbose'.
+        Any CMADRG value specifically set will override this
+        default.
+
     ARGCOUNT
         Some variables are intended to be simple flags that have a
         false/true (zero/non-zero) value (e.g. the 'verbose' example
@@ -316,6 +350,10 @@ DESCRIPTION
         to set the variable to a true state. The default ARGCOUNT
         value is 0.
 
+        If the GLOBAL ARGCOUNT variable is set (the GLOBAL manpage
+        above) then this value will be used as the default ARGCOUNT
+        for each variable unless otherwise specified.
+
         NOTE: Although any non-zero value can be used to indicate
         the presence of an additional argument, this option may be
         extended in the future to handle multiple arguments. The
@@ -331,6 +369,10 @@ DESCRIPTION
         be replaced with their relevant values. By default EXPAND is
         set to 1 (expansion) but can be set to 0 to disable the
         feature.
+
+        If the GLOBAL EXPAND variable is set (the GLOBAL manpage
+        above) then this value will be used as the default EXPAND
+        for each variable unless otherwise specified.
 
         Items are expanded according to the following rules:
 
@@ -381,6 +423,10 @@ DESCRIPTION
         indicate that the value is valid or invalid, respectively.
         An invalid value will cause a warning error message to be
         generated.
+
+        If the GLOBAL VALIDATE variable is set (the GLOBAL manpage
+        above) then this value will be used as the default VALIDATE
+        for each variable unless otherwise specified.
 
     ACTION
         The ACTION option allows a sub-routine to be bound to a
@@ -545,8 +591,8 @@ KNOWN BUGS AND LIMITATIONS
         single, multiple. The validate function could additionally
         take an array ref which contains code refs or regex's to
         match each arg. Should also be able to handle multiple
-        options that can be specified separately, e.g. -
-        I/usr/include -I/user/abw/include.
+        options that can be specified separately, e.g. `-
+        I/usr/include' `-I/user/abw/include'.
 
     *   An ACCESS parameter could specify which actions may update a
         variable: set(), cfg_file() and/or cmd_line().
@@ -557,13 +603,22 @@ KNOWN BUGS AND LIMITATIONS
 AUTHOR
     Andy Wardley, `<abw@cre.canon.co.uk>'
 
-    SAS Group, Canon Research Centre Europe Ltd.
+    Web Technology Group, Canon Research Centre Europe Ltd.
 
     App::Config is based in part on the ConfigReader module, v0.5,
     by Andrew Wilcox (currently untraceable).
 
+    Thanks to all the people who have reported bugs and made
+    suggestions. Extra special thanks to those who sent patches:
+
+        Mik Firestone <fireston@lexmark.com>
+            * GLOBAL arguments
+
+        Blair Zajac <blair@gps.caltech.edu>
+            * getpw*() check for Win32 compatibility
+
 REVISION
-    $Revision: 1.5 $
+    $Revision: 1.7 $
 
 COPYRIGHT
     Copyright (C) 1997,98 Canon Research Centre Europe Ltd. All
@@ -576,12 +631,8 @@ SEE ALSO
     Andy Wardley's Home Page
         http://www.kfs.org/~abw/
 
-    The SAS Group Home Page
-        http://www.cre.canon.co.uk/sas.html
-
-        The research group at Canon Research Centre Europe
-        responsible for development of App::Config and similar
-        tools.
+    Canon Research Centre Europe
+        http://www.cre.canon.co.uk/perl/
 
     The ConfigReader module.
         The module which provided inspiration and ideas for the
