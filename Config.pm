@@ -8,25 +8,24 @@
 #
 # Written by Andy Wardley <abw@cre.canon.co.uk>
 #
-# Copyright (C) 1997 Canon Research Centre Europe Ltd.  All Rights Reserved.
+# Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
+# All Rights Reserved.
 #
 #----------------------------------------------------------------------------
 #
-# $Id: Config.pm,v 1.7 1998/07/03 10:11:01 abw Exp abw $
+# $Id: Config.pm,v 1.9 1998/07/23 14:01:40 abw Exp abw $
 #
 #============================================================================
 
 package App::Config;
 
 require 5.004;
-require AutoLoader;
 
 use strict;
-use vars qw( $RCS_ID $VERSION @ISA $AUTOLOAD );
+use vars qw( $RCS_ID $VERSION $AUTOLOAD );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
-$RCS_ID  = q$Id: Config.pm,v 1.7 1998/07/03 10:11:01 abw Exp abw $;
-@ISA     = qw(AutoLoader);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.9 $ =~ /(\d+)\.(\d+)/);
+$RCS_ID  = q$Id: Config.pm,v 1.9 1998/07/23 14:01:40 abw Exp abw $;
 
 
 
@@ -832,7 +831,7 @@ App::Config - Perl5 extension for managing global application configuration info
 =head1 SYNOPSIS
 
     use App::Config;
-    my $cfg = new App::Config;
+    my $cfg = App::Config->new();
 
     $cfg->define("foo");            # very simple variable definition
 
@@ -903,16 +902,16 @@ directory (for example, by executing "perl Makefile.PL LIB=~/lib" in the
 above - see C<perldoc MakeMaker> for full details), you will need to ensure
 that the PERL5LIB environment variable is set to include the location, or
 add a line to your scripts explicitly naming the library location:
- 
+
     use lib '/local/path/to/lib';
 
 =head1 DESCRIPTION
 
 =head2 USING THE App::Config MODULE
 
-To import and use the App::COnfig module the following line should appear
+To import and use the App::Config module the following line should appear
 in your Perl script:
- 
+
      use App::Config;
       
 App::Config is implemented using object-oriented methods.  A new App::Config
@@ -981,16 +980,36 @@ can be used to define a function to handle each line of the config file.
 The C<cfg_file()> routine reads the file and passes each line
 to the LINEPARSE function, where defined.
 
-Four parameters are passed to the LINEPARSE function; a reference to the
-App::Config object, the config filename, the current line within the file 
-and the line of text itself (the filename and line number are useful for 
-reporting errors).  Note that C<cfg_file()> does some elementary 
-pre-processing before calling the LINEPARSE function.  See 
-L<READING A CONFIGURATION FILE> for more details.
+Four parameters are passed to the LINEPARSE function:
+
+=over 4
+
+=item *
+
+a reference to the App::Config object
+
+=item *
+
+the config filename
 
 The function should return 1 to indicate that the line has been successfully 
 parsed, or 0 to indicate that no action was taken and the default line 
 parser should now be used for this line.
+
+=item *
+
+the current line number within the file, and
+
+=item *
+
+the line of text itself (the filename and line number are useful for 
+reporting errors).
+
+=back
+
+Note that C<cfg_file()> does some elementary 
+pre-processing before calling the LINEPARSE function.
+See L<READING A CONFIGURATION FILE> for more details.
 
 =item CMDPARSE
 
@@ -1045,7 +1064,7 @@ A pseudo-code example is shown:
 	# we processed it so return 1
 	return 1;
     }
-		
+
 =item CMDENV
 
 The CMDENV option is used to specify the name of an environment variable
@@ -1179,7 +1198,8 @@ can be specified by passing a reference to an array of arguments:
 	    CMDARG => [ '-v', '-V' ],
 	});
 
-If the GLOBAL CMDARG variable is set (L<GLOBAL> above) then the default
+If the GLOBAL CMDARG variable is set (see GLOBAL in 
+L<DESCRIPTION> above) then the default
 CMDARG for each variable will be its name (and any aliases) prefixed by
 a dash, e.g. '-verbose'.  Any CMADRG value specifically set will override 
 this default.
@@ -1198,7 +1218,8 @@ C<cmd_line()> passes the next argument from the command line argument
 list (usually @ARGV).  When ARGCOUNT is 0, both functions pass the value 
 1 to set the variable to a true state.  The default ARGCOUNT value is 0.
 
-If the GLOBAL ARGCOUNT variable is set (L<GLOBAL> above) then this value
+If the GLOBAL ARGCOUNT variable is set (see GLOBAL in
+L<DESCRIPTION> above) then this value
 will be used as the default ARGCOUNT for each variable unless otherwise
 specified.
 
@@ -1217,7 +1238,8 @@ variables should be replaced with their relevant values.  By default
 EXPAND is set to 1 (expansion) but can be set to 0 to disable the
 feature.
 
-If the GLOBAL EXPAND variable is set (L<GLOBAL> above) then this value
+If the GLOBAL EXPAND variable is set (see GLOBAL in 
+<DESCRIPTION> above) then this value
 will be used as the default EXPAND for each variable unless otherwise
 specified.
 
@@ -1275,7 +1297,8 @@ sub-routine should return 1 or 0 to indicate that the value is valid
 or invalid, respectively.  An invalid value will cause a warning error
 message to be generated.
 
-If the GLOBAL VALIDATE variable is set (L<GLOBAL> above) then this value
+If the GLOBAL VALIDATE variable is set (see GLOBAL in
+L<DESCRIPTION> above) then this value
 will be used as the default VALIDATE for each variable unless otherwise
 specified.
 
@@ -1482,17 +1505,23 @@ App::Config is based in part on the ConfigReader module, v0.5, by Andrew
 Wilcox (currently untraceable).
 
 Thanks to all the people who have reported bugs and made suggestions.  
-Extra special thanks to those who sent patches:
+Special thanks to those who sent patches:
 
-    Mik Firestone <fireston@lexmark.com>
-        * GLOBAL arguments
+=over 4
 
-    Blair Zajac <blair@gps.caltech.edu>
-        * getpw*() check for Win32 compatibility
+=item Firestone <fireston@lexmark.com>
+
+GLOBAL arguments
+
+=item Blair Zajac <blair@gps.caltech.edu>
+
+getpw*() check for Win32 compatibility
+
+=back
 
 =head1 REVISION
 
-$Revision: 1.7 $
+$Revision: 1.9 $
 
 =head1 COPYRIGHT
 
@@ -1511,6 +1540,11 @@ http://www.kfs.org/~abw/
 
 =item Canon Research Centre Europe 
 
+
+=item printf(3C)
+
+The man page for the C<printf()> function, for a description of
+the format parameter to the C<ERROR> routine.
 http://www.cre.canon.co.uk/perl/
 
 =item The ConfigReader module.
